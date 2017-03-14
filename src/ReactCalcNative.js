@@ -1,236 +1,86 @@
-import React, { Component } from 'react'
-import { View, Text, AppRegistry, ToolbarAndroid } from 'react-native'
+import React, {Component} from 'react'
+import {View, AppRegistry, Navigator} from 'react-native'
 
 import axios from 'axios'
 import moment from 'moment'
 
-import { toolbarStyles, calculatorStyles, displayStyles, buttonStyles } from './Styles'
-import { Display } from './Display'
-import { Button, DigitKey, FuncKey } from './Button'
+import Calculator from './Calculator'
+import History from './History'
 
 class ReactCalcNative extends Component {
-  constructor(props) {
-    super(props)
 
-    this.state = {
-      inputedValue: '0',
-      isNumberNegative: false,
-      isCalculated: false,
-      isNeedOperand: false,
-      memory: [],
-      showHistory: false,
-      shouldRender: false
-    }
+    constructor(props) {
+        super(props)
 
-    this.handleDigit = this.handleDigit.bind(this)
-    this.handleOperator = this.handleOperator.bind(this)
-    this.handleDot = this.handleDot.bind(this)
-    this.handlePercent = this.handlePercent.bind(this)
-    this.toggleSign = this.toggleSign.bind(this)
-    this.clearAll = this.clearAll.bind(this)
-    this.clearLast = this.clearLast.bind(this)
-
-  }
-
-  componentDidMount() {
-    axios.get('https://calcmemoryapi.herokuapp.com/api/memory/latest?=3')
-      .then(res => res.data)
-      .then(memory => this.setState({
-        memory: memory,
-        shouldRender: true
-      }))
-      .catch(error => this.handleError(error))
-  }
-
-
-  handleDigit(digit) {
-    const { inputedValue } = this.state;
-
-    this.setState({
-      inputedValue: inputedValue === '0' || inputedValue === '-0' ? String(digit) : inputedValue + digit,
-      isCalculated: false,
-      isNeedOperand: false
-    })
-  }
-
-  handleOperator(operator) {
-    const { inputedValue, isNeedOperand } = this.state;
-
-    if (operator === '=') {
-      let computedResult = parseFloat(eval(inputedValue).toFixed(12));
-      let result = '';
-
-      if (isFinite(computedResult)) {
-        result = computedResult
-      } else {
-        switch (computedResult) {
-          case Infinity:
-            result = '∞'
-            break;
-          case -Infinity:
-            result = '-∞'
-            break;
-          default:
-            result = 'Error'
-            break;
+        this.state = {
+            history: [],
+            // showHistory: false,
+            // shouldRender: false
         }
-      }
 
-      this.setState({
-        inputedValue: result,
-        isCalculated: true,
-        isNeedOperand: false
-      })
-      this.addMemoryItem(inputedValue + '=' + eval(inputedValue))
-    } else {
-      if (isNeedOperand) {
-        this.setState({
-          inputedValue: inputedValue.slice(0, -1) + operator,
-          isCalculated: false,
-          isNeedOperand: true
-        })
-      } else {
-        this.setState({
-          inputedValue: inputedValue + operator,
-          isCalculated: false,
-          isNeedOperand: true
-        })
-      }
-    }
-  }
-
-  handleDot() {
-    const { inputedValue } = this.state;
-
-    if (!(/\./).test(inputedValue)) {
-      this.setState({
-        inputedValue: inputedValue + '.'
-      })
-    }
-  }
-
-  handlePercent() {
-    this.setState({
-      inputedValue: String(parseFloat(this.state.inputedValue) / 100),
-      isCalculated: true
-    })
-  }
-
-  toggleSign() {
-    const { inputedValue, isNumberNegative, isNeedOperand } = this.state;
-
-    if (isNeedOperand) {
-      let valueLength = inputedValue.length,
-        signlessString = inputedValue.slice(0, -1),
-        operator = inputedValue.charAt(inputedValue.length - 1),
-        newValue = (signlessString * -1) + operator;
-
-      this.setState({
-        inputedValue: newValue,
-        isNumberNegative: false,
-      })
-    } else if (isNumberNegative) {
-      this.setState({
-        inputedValue: String(inputedValue * -1),
-        isNumberNegative: false,
-      })
-    } else {
-      this.setState({
-        inputedValue: '-' + inputedValue,
-        isNumberNegative: true
-      })
-    }
-  }
-
-  addMemoryItem(item) {
-    let a = new Date();
-    let formattedDate = moment(a).format('YYYY-MM-DD HH:mm:ss');
-
-    let memoryItem = {
-      _id: new Date(),
-      date: formattedDate,
-      operation: item
+        this._renderScene = this._renderScene.bind(this)
+        this.addHistoryItem = this.addHistoryItem.bind(this);
+        this.deleteHistoryItem = this.deleteHistoryItem.bind(this);
     }
 
-    axios.post('https://calcmemoryapi.herokuapp.com/api/memory', memoryItem)
-      .then(res => console.log(res))
-      .catch(error => this.handleError(error))
-  }
-
-  clearAll() {
-    this.setState({
-      inputedValue: '0',
-      isCalculated: false
-    })
-  }
-
-  clearLast() {
-    const { inputedValue } = this.state;
-
-    if (inputedValue.length !== 1) {
-      this.setState({
-        inputedValue: inputedValue.slice(0, -1)
-      })
-    } else {
-      this.setState({
-        inputedValue: '0'
-      })
+    componentDidMount() {
+        axios.get('https://calcmemoryapi.herokuapp.com/api/memory/latest?=3')
+            .then(res => res.data)
+            .then(history => this.setState({ history }))
+            .catch(error => console.log(error))
     }
-  }
 
-  render() {
-    return (
-      <View style={{ flex: 1 }}>
-        <ToolbarAndroid style={toolbarStyles.root}>
-          <Text style={toolbarStyles.text}>React Calc Native</Text>
-        </ToolbarAndroid>
+    _renderScene(route, navigator) {
+        if (route.id === 1) {
+            return <Calculator
+                        navigator={navigator}
+                        history={this.state.history}
+                        onHistoryItemAdd={this.addHistoryItem} />
+        } else if (route.id === 2) {
+            return <History
+                        navigator={navigator}
+                        history={this.state.history}
+                        onHistoryItemDelete={this.deleteHistoryItem} />
+        }
+    }
 
-        <View style={{ flex: 1 }}>
-          <Display display={this.state.inputedValue} style={displayStyles.root} />
+    addHistoryItem(item) {
+        let a = +new Date()
+        let formattedDate = moment(a).format('YYYY-MM-DD HH:mm:ss')
 
-          <View style={calculatorStyles.body}>
-            <View style={calculatorStyles.row}>
-              {this.state.isCalculated ?
-                <FuncKey onPress={this.clearAll}>AC</FuncKey>
-                :
-                <FuncKey onPress={this.clearLast}>CE</FuncKey>
-              }
-              <FuncKey onPress={this.toggleSign}>±</FuncKey>
-              <FuncKey onPress={this.handlePercent}>%</FuncKey>
-              <FuncKey onPress={this.handleOperator}>/</FuncKey>
-            </View>
-            <View style={calculatorStyles.row}>
-              <DigitKey onPress={this.handleDigit} >7</DigitKey>
-              <DigitKey onPress={this.handleDigit} >8</DigitKey>
-              <DigitKey onPress={this.handleDigit} >9</DigitKey>
-              <FuncKey onPress={this.handleOperator}>*</FuncKey>
-            </View>
-            <View style={calculatorStyles.row}>
-              <DigitKey onPress={this.handleDigit} >4</DigitKey>
-              <DigitKey onPress={this.handleDigit} >5</DigitKey>
-              <DigitKey onPress={this.handleDigit} >6</DigitKey>
-              <FuncKey onPress={this.handleOperator}>-</FuncKey>
-            </View>
-            <View style={calculatorStyles.row}>
-              <DigitKey onPress={this.handleDigit} >1</DigitKey>
-              <DigitKey onPress={this.handleDigit} >2</DigitKey>
-              <DigitKey onPress={this.handleDigit} >3</DigitKey>
-              <FuncKey onPress={this.handleOperator}>+</FuncKey>
-            </View>
-            <View style={calculatorStyles.row}>
-              <FuncKey textStyle={this.state.memory.length > 0 ? '' : buttonStyles.disabled}>ME</FuncKey>
-              <DigitKey onPress={this.handleDigit}>0</DigitKey>
-              <DigitKey onPress={this.handleDot}>.</DigitKey>
-              <FuncKey onPress={this.handleOperator}>=</FuncKey>
-            </View>
-          </View>
-          
-        </View>
-      </View>
-    )
-  }
+        let historyItem = {
+            _id: a,
+            date: formattedDate,
+            operation: item
+        }
+
+        let history = [...this.state.history, historyItem];
+        this.setState({ history })
+
+        axios.post('https://calcmemoryapi.herokuapp.com/api/memory', historyItem)
+            .then(res => console.log(res))
+            .catch(error => this.handleError(error))
+    }
+
+    deleteHistoryItem(id) {
+        let history = this.state.history.filter(memoryItem => memoryItem._id !== id);
+        this.setState({ history })
+
+
+        axios.post(`https://calcmemoryapi.herokuapp.com/api/memory/${id}`)
+            .then(res => console.log(res))
+            .catch(error => console.log(error))
+    }
+
+
+
+    render() {
+
+        return (
+            <Navigator initialRoute={{id: 1}} renderScene={this._renderScene}/>
+        )
+    }
 }
-
 
 export default ReactCalcNative
 

@@ -69,4 +69,32 @@ const buttonStyles = StyleSheet.create({
   }
 })
 
-export { toolbarStyles, calculatorStyles, displayStyles, buttonStyles }
+const historyStyles = StyleSheet.create({
+    root: {
+        height: 100,
+        alignItems: 'flex-start'
+    },
+
+    text: {
+        textAlign: 'left',
+        fontSize: 21,
+        color: '#03A9F4'
+    },
+
+    back: {
+      width: 200,
+      padding: 20,
+      alignSelf: 'center',
+      backgroundColor: '#d63c6b',
+    },
+
+    backText: {
+      color: '#fff',
+      fontSize: 26,
+      textAlign: 'center'
+    }
+
+})
+
+
+export { toolbarStyles, calculatorStyles, displayStyles, buttonStyles, historyStyles }
